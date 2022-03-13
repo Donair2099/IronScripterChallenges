@@ -2,10 +2,9 @@ Function Get-WindowsServerDownTime {
     [CmdletBinding()]
         Param (
         [Parameter(ValueFromPipeline = $true)]
-        [string]$ComputerName = "$env:computername",
+        [string]$ComputerName,
         [Parameter()]
         [PSCredential]$Credentials
-        # [PSCredential]$Credentials = [System.Management.Automation.PSCredential]::Empty
     )
 
     BEGIN
@@ -13,14 +12,27 @@ Function Get-WindowsServerDownTime {
 
     PROCESS
     {
-        if ([string]::IsNullOrEmpty($Credentials)){
-            $CimData = (Get-CimInstance -ClassName win32_operatingsystem)
-            $LogData = (Get-EventLog -LogName System |? {$_.EventID -eq 1074})[0]
+        $CimArgs = @{}
+        $CimArgs.Add('ClassName','win32_operatingsystem')
+
+        $LogArgs = @{}
+        $LogArgs.Add('LogName','System')
+
+        if ($ComputerName){
+            $CimArgs.Add('ComputerName',$ComputerName)
+            $LogArgs.Add('ComputerName',$ComputerName)
         }
-        else{
-            $CimData = (Get-CimInstance -ClassName win32_operatingsystem -ComputerName $ComputerName -Credentials $Credentials)
-            $LogData = (Get-EventLog -ComputerName $ComputerName -Credentials $Credentials -LogName System |? {$_.EventID -eq 1074})[0]
+        else {
+            $ComputerName = "$env:computername"
         }
+
+        if ($Credentials){
+            $CimArgs.Add('Credentials',$Credentials)
+            $LogArgs.Add('Credentials',$Credentials)
+        }
+
+        $CimData = (Get-CimInstance @CimArgs)
+        $LogData = (Get-EventLog @LogArgs |? {$_.EventID -eq 1074})[0]
 
         $MessageSplit = ($LogData.Message).Split(' ')
         $UserIndex = $MessageSplit.IndexOf('user') + 1
