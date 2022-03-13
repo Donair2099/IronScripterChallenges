@@ -32,7 +32,7 @@ Function Get-WindowsServerDownTime {
         }
 
         $CimData = (Get-CimInstance @CimArgs)
-        $LogData = (Get-EventLog @LogArgs |? {$_.EventID -eq 1074})[0]
+        $LogData = (Get-EventLog @LogArgs | where {$_.EventID -eq 1074})[0]
 
         $MessageSplit = ($LogData.Message).Split(' ')
         $UserIndex = $MessageSplit.IndexOf('user') + 1
